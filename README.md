@@ -1,142 +1,246 @@
 # Multimodal Agentic RAG for Complex Blueprint & Circuit Analysis
 
-## Core Backend Service (Java Spring Boot)
-
-This is the production-grade **Java Spring Boot** backend for the **Multimodal Agentic RAG for Complex Blueprint & Circuit Analysis** system.
-
-It is designed according to a modern **Microservices Hybrid Architecture**:
-
-- **Java Spring Boot (this service)**: Manages document ingestion, storage validation, metadata persistence, API contracts, security, and orchestration.
-- **Python ML Worker (integrated later)**: A dedicated Python microservice running trained YOLOv8 / YOLOv11 symbol detectors and OCR engines.
+A production-grade, end-to-end multimodal AI platform for electronic circuit blueprint analysis, component detection (YOLOv8), text extraction (Tesseract OCR), and document management.
 
 ---
 
-### 1. Prerequisites
+## 1. System Architecture
 
-- **JDK**: Java 21 LTS (`21.0.10+` verified)
-- **Build Tool**: Apache Maven (`3.9.x+` verified)
-- **Database**: PostgreSQL 16+ (Database: `blueprint_db`, User: `postgres`)
+The project is structured as a **Microservices Monorepo**:
 
----
-
-### 2. Project Architecture & Packages
-
-```
-src/main/java/com/blueprint/rag/
-├── BlueprintAnalysisApplication.java
-├── client/                     # Communication interfaces with external services
-│   ├── MlServiceClient.java   # Clean abstraction for Python ML YOLO service
-│   └── impl/
-│       └── HttpMlServiceClient.java
-├── config/                     # Portable configuration & bean definitions
-│   ├── MlServiceProperties.java
-│   ├── RestClientConfig.java
-│   ├── StorageProperties.java
-│   └── WebConfig.java
-├── controller/                 # REST API endpoints
-│   ├── AnalysisController.java # Document upload, listing, and analysis triggers
-│   └── HealthController.java   # System health and integration diagnostics
-├── dto/                        # Request/Response contracts & API envelopes
-│   ├── request/
-│   │   └── AnalysisRequestDto.java
-│   └── response/
-│       ├── AnalysisRecordResponse.java
-│       ├── AnalysisResponse.java
-│       ├── ApiResponse.java
-│       ├── DocumentResponse.java
-│       ├── HealthResponse.java
-│       ├── MlHealthDto.java
-│       └── MlInferenceResultDto.java
-├── entity/                     # JPA Persistence Entities
-│   ├── AnalysisRecord.java
-│   ├── BlueprintDocument.java
-│   └── DocumentStatus.java
-├── exception/                  # Standardized error handling
-│   ├── ErrorResponse.java
-│   ├── FileStorageException.java
-│   ├── GlobalExceptionHandler.java
-│   ├── InvalidFileException.java
-│   ├── MlServiceException.java
-│   ├── MlServiceUnavailableException.java
-│   └── ResourceNotFoundException.java
-├── repository/                 # Spring Data JPA Repositories
-│   ├── AnalysisRecordRepository.java
-│   └── BlueprintDocumentRepository.java
-└── service/                    # Business logic orchestration
-    ├── AnalysisService.java
-    ├── FileStorageService.java
-    └── impl/
-        ├── AnalysisServiceImpl.java
-        └── LocalFileStorageServiceImpl.java
+```mermaid
+flowchart TD
+    User["Client Browser"] -->|HTTP / HTTPS| Frontend["React 18 + Vite Frontend\n(Vercel SPA)"]
+    Frontend -->|REST API\n(VITE_API_BASE_URL)| Backend["Java Spring Boot 3.3.5 Backend\n(Render Web Service)"]
+    Backend -->|JDBC\n(SPRING_DATASOURCE_URL)| Database[("PostgreSQL 16+\n(Render / Supabase / Neon)")]
+    Backend -->|Multipart Form POST\n(ML_SERVICE_URL)| MLService["Python FastAPI ML Microservice\n(Render Docker Web Service)"]
+    MLService -->|Inference| YOLO["YOLOv8 Circuit Detector\n(circuit_yolov8n_preliminary.pt)"]
+    MLService -->|Text Extraction| Tesseract["Tesseract OCR Engine\n(pytesseract)"]
 ```
 
 ---
 
-### 3. Build & Run Instructions
+## 2. Monorepo Directory Structure
 
-#### Compiling & Running Tests:
-
-```powershell
-mvn clean test
 ```
-
-#### Starting the Application:
-
-```powershell
-mvn spring-boot:run
+Multi-Model-RAG-Agentic-Project/
+├── .gitignore                          # Comprehensive monorepo exclusion rules
+├── README.md                           # Master project documentation
+│
+├── frontend/                           # React 18 + Vite 6 + Tailwind CSS Frontend
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── vercel.json                     # Client-side routing rewrite for Vercel
+│   ├── .env.example                    # VITE_API_BASE_URL=...
+│   └── src/
+│       ├── api/                        # Axios client & REST endpoints
+│       ├── components/                 # Upload dropzone, bounding box overlay, tables
+│       ├── pages/                      # Dashboard, Documents, Details, Health
+│       └── lib/                        # Constants & class mappings
+│
+├── backend/                            # Java 21 Spring Boot 3.3.5 Backend Orchestrator
+│   ├── pom.xml
+│   ├── Dockerfile                      # Multi-stage Eclipse Temurin 21 build
+│   ├── src/main/java/com/blueprint/rag/
+│   │   ├── client/                     # RestClient abstraction to Python service
+│   │   ├── config/                     # CORS, RestClient timeouts, Storage config
+│   │   ├── controller/                 # /api/documents, /api/health
+│   │   ├── dto/                        # Request/Response contracts & envelopes
+│   │   ├── entity/                     # JPA entities (blueprint_documents, analysis_records)
+│   │   ├── repository/                 # Spring Data JPA repositories
+│   │   └── service/                    # Business logic & file storage
+│   ├── src/main/resources/
+│   │   └── application.properties      # Cloud-ready properties (env vars)
+│   └── data/                           # Local uploads storage (.gitkeep)
+│
+└── ml-service/                         # Python 3.11 FastAPI ML Microservice
+    ├── main.py                         # FastAPI application entry point (/analyze, /health)
+    ├── requirements.txt                # Python dependencies (headless OpenCV, PyTorch CPU, Tesseract)
+    ├── Dockerfile                      # Linux container with Tesseract OCR & OpenCV libs
+    ├── configs/
+    │   └── config.yaml                 # Detection thresholds & model parameters
+    ├── tests/
+    │   └── test_phase2_e2e.py          # End-to-end integration test suite
+    └── vision_engine/                  # Vision pipeline package
+        ├── app/
+        │   ├── analyzer.py             # PDF orchestrator
+        │   ├── document_pipeline.py    # PyMuPDF rendering & YOLOv8 inference
+        │   └── ocr_engine.py           # Tesseract OCR engine with fallback
+        └── models/
+            ├── circuit_yolov8n_preliminary.pt  # 6.16 MB trained 14-class YOLOv8 weights
+            └── yolov8n.pt              # Baseline model
 ```
-
-Alternatively, package and run the JAR:
-
-```powershell
-mvn clean package -DskipTests
-java -jar target/blueprint-analysis-service-0.0.1-SNAPSHOT.jar
-```
-
-The application starts on **`http://localhost:8080`**.
 
 ---
 
-### 4. API Endpoints
+## 3. Local Development Setup
 
-| HTTP Method | Endpoint                       | Description                                                                            |
-| :---------- | :----------------------------- | :------------------------------------------------------------------------------------- |
-| `GET`       | `/api/health`                  | Service health, Java version, and ML service connectivity status.                      |
-| `POST`      | `/api/documents/upload`        | Multipart file upload (`.pdf`, `.png`, `.jpg`, `.jpeg` up to 50MB).                    |
-| `GET`       | `/api/documents`               | Lists all uploaded blueprint documents.                                                |
-| `GET`       | `/api/documents/{id}`          | Retrieves metadata for a specific blueprint document.                                  |
-| `POST`      | `/api/documents/{id}/analyze`  | Triggers ML analysis (falls back safely to PENDING_ANALYSIS if ML service is offline). |
-| `GET`       | `/api/documents/{id}/download` | Downloads the raw blueprint file.                                                      |
-| `GET`       | `/api/documents/{id}/records`  | Retrieves past ML analysis records for a document.                                     |
-| `DELETE`    | `/api/documents/{id}`          | Deletes the document metadata and deletes the file from `./data/uploads`.              |
+### Prerequisites
+- **Java**: OpenJDK 21 LTS
+- **Node.js**: v18+ (v20+ recommended)
+- **Python**: 3.10 to 3.12 (with Tesseract-OCR installed)
+- **Database**: PostgreSQL 15+ running locally on port `5432`
 
-#### Database Configuration (PostgreSQL):
+---
 
-The project connects to **PostgreSQL**:
-- Database: `blueprint_db`
-- Default User: `postgres`
-- Default Password: `Meraj@12345`
-- Port: `5432`
+### Step 1: Start PostgreSQL
+Create a database named `blueprint_db`:
+```sql
+CREATE DATABASE blueprint_db;
+```
 
-You can customize the credentials via environment variables if needed:
+---
+
+### Step 2: Run the Python ML Microservice
 ```powershell
+cd ml-service
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
+
+# Start FastAPI server on port 8000
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+Test health: `http://localhost:8000/health`
+
+---
+
+### Step 3: Run the Java Spring Boot Backend
+```powershell
+cd backend
 $env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/blueprint_db"
 $env:SPRING_DATASOURCE_USERNAME="postgres"
 $env:SPRING_DATASOURCE_PASSWORD="your_postgres_password"
+$env:ML_SERVICE_URL="http://localhost:8000"
 
 mvn spring-boot:run
 ```
+Backend starts on `http://localhost:8080`.
+Test health: `http://localhost:8080/api/health` (verifies backend + ML service connection).
 
 ---
 
-### 5. Connecting the Python YOLO Service Later
+### Step 4: Run the React Frontend
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+Open `http://localhost:5173` in your browser.
 
-When you transfer your trained YOLO weights (`.pt`) from your other laptop:
+---
 
-1. Run your Python FastAPI/Flask inference service on port `8000` (or any other port).
-2. Override the target URL via the environment variable:
-   ```powershell
-   $env:ML_SERVICE_URL="http://localhost:8000"
-   mvn spring-boot:run
+## 4. Production Cloud Deployment Guide
+
+### Deployment Architecture
+- **Source Code**: GitHub (`Meraj076/Multi-Model-RAG-Agentic-Project`)
+- **Database**: Render Managed PostgreSQL (or Supabase / Neon)
+- **ML Service**: Render Web Service (Docker)
+- **Backend**: Render Web Service (Docker / Native Maven)
+- **Frontend**: Vercel (Vite Preset)
+
+---
+
+### Phase 1: Deploy PostgreSQL Database
+1. Go to [Render Dashboard](https://dashboard.render.com/) -> **New +** -> **PostgreSQL Database**.
+2. Settings:
+   - Name: `blueprint-db`
+   - Database: `blueprint_db`
+   - User: `blueprint_user`
+   - Plan: **Free**
+3. Once provisioned, copy the **External Database URL** and prepare the JDBC string:
    ```
-3. If the ML service is not yet running, `/api/documents/{id}/analyze` automatically marks the document as `PENDING_ANALYSIS` and returns a clean diagnostic status without throwing unhandled exceptions or inventing fake model detections.
+   jdbc:postgresql://<host>.oregon-postgres.render.com:5432/blueprint_db?sslmode=require
+   ```
+
+---
+
+### Phase 2: Deploy Python ML Service (Render)
+1. In Render Dashboard, click **New +** -> **Web Service**.
+2. Connect GitHub repo: `Meraj076/Multi-Model-RAG-Agentic-Project`.
+3. Configure:
+   - **Name**: `blueprint-ml-service`
+   - **Root Directory**: `ml-service`
+   - **Runtime**: **Docker** (automatically builds from `ml-service/Dockerfile`)
+   - **Instance Type**: Free
+4. Environment Variables:
+   - `PORT`: `8000`
+5. Click **Deploy Web Service**.
+6. Note the deployed URL: `https://blueprint-ml-service.onrender.com`.
+
+---
+
+### Phase 3: Deploy Java Spring Boot Backend (Render)
+1. In Render Dashboard, click **New +** -> **Web Service**.
+2. Connect GitHub repo: `Meraj076/Multi-Model-RAG-Agentic-Project`.
+3. Configure:
+   - **Name**: `blueprint-backend-service`
+   - **Root Directory**: `backend`
+   - **Runtime**: **Docker** (automatically builds from `backend/Dockerfile`)
+   - **Instance Type**: Free
+4. Environment Variables:
+   - `PORT`: `8080`
+   - `SPRING_DATASOURCE_URL`: `jdbc:postgresql://<host>:5432/blueprint_db?sslmode=require`
+   - `SPRING_DATASOURCE_USERNAME`: `<your_db_username>`
+   - `SPRING_DATASOURCE_PASSWORD`: `<your_db_password>`
+   - `ML_SERVICE_URL`: `https://blueprint-ml-service.onrender.com`
+   - `ML_SERVICE_CONNECT_TIMEOUT_MS`: `60000`
+   - `ML_SERVICE_READ_TIMEOUT_MS`: `90000`
+   - `JAVA_OPTS`: `-Xms192m -Xmx320m -XX:+UseSerialGC`
+5. Click **Deploy Web Service**.
+6. Verify at: `https://blueprint-backend-service.onrender.com/api/health`.
+
+---
+
+### Phase 4: Deploy React Frontend (Vercel)
+1. Log in to [Vercel](https://vercel.com/) and click **Add New Project**.
+2. Import `Meraj076/Multi-Model-RAG-Agentic-Project`.
+3. Project Configuration:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. Environment Variables:
+   - `VITE_API_BASE_URL`: `https://blueprint-backend-service.onrender.com/api`
+5. Click **Deploy**.
+6. Your live web app is now available at: `https://<your-project>.vercel.app`.
+
+---
+
+## 5. API Reference
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/health` | System health check (reports JVM status & Python ML connectivity). |
+| `POST` | `/api/documents/upload` | Multipart file upload (`.pdf`, `.png`, `.jpg`, `.jpeg` up to 50 MB). |
+| `GET` | `/api/documents` | Lists all uploaded blueprint documents with status & metadata. |
+| `GET` | `/api/documents/{id}` | Retrieves metadata and status for a specific document. |
+| `POST` | `/api/documents/{id}/analyze` | Triggers YOLO component detection & Tesseract OCR analysis. |
+| `GET` | `/api/documents/{id}/download` | Downloads the raw uploaded blueprint file. |
+| `GET` | `/api/documents/{id}/records` | Retrieves past ML analysis records for a document. |
+| `DELETE`| `/api/documents/{id}` | Deletes document metadata and removes the local file. |
+
+---
+
+## 6. Detectable Circuit Component Classes
+
+The custom YOLOv8 model (`circuit_yolov8n_preliminary.pt`) detects 14 standard circuit component classes:
+
+| Class ID | Component Name | Class ID | Component Name |
+| :---: | :--- | :---: | :--- |
+| 0 | Resistor | 7 | Ground |
+| 1 | Capacitor | 8 | Connector |
+| 2 | Diode | 9 | Fuse |
+| 3 | LED | 10 | IC |
+| 4 | Transistor | 11 | Inductor |
+| 5 | Switch | 12 | Transformer |
+| 6 | Battery | 13 | Bridge Rectifier |
+
+---
+
+## 7. License
+
+This project is licensed under the Apache 2.0 License.

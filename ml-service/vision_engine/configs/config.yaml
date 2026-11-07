@@ -1,0 +1,24 @@
+# vision_engine — base configuration
+# Verified working: 2026-10-14
+# Python 3.14.5 | CPU-only | Windows (Intel i5-1135G7 / Iris Xe)
+
+project:
+  name: "Multimodal Agentic RAG - Vision Engine"
+  version: "0.1.0"
+
+inference:
+  device: "cpu"                # CPU-only; no CUDA / no NVIDIA GPU
+  confidence_threshold: 0.25
+  iou_threshold: 0.45
+  imgsz: 640                   # Input image size for YOLO
+
+# IMPORTANT import notes (verified 2026-10-14):
+#   PyMuPDF  -> use: import pymupdf   (fitz alias is deprecated)
+#   Pillow   -> use: from PIL import Image   (not PIL.Image.Image.new)
+#   torch    -> 2.14.1+cpu | torchvision -> 0.29.1+cpu (mutually compatible)
+
+paths:
+  models_dir: "vision_engine/models"
+  yolo_model: "vision_engine/models/yolov8n.pt"   # nano baseline model (verified)
+  outputs_dir: "vision_engine/outputs"
+  datasets_dir: "vision_engine/datasets"
