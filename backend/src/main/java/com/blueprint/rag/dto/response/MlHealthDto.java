@@ -1,4 +1,4 @@
-﻿package com.blueprint.rag.dto.response;
+package com.blueprint.rag.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
