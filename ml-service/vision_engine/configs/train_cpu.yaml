@@ -1,0 +1,55 @@
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  vision_engine — YOLO CPU Training Configuration                        ║
+# ║  Hardware: Intel Core i5-1135G7, 20 GB RAM, Intel Iris Xe (no CUDA)    ║
+# ║  Model: YOLOv8n (nano) — smallest, fastest on CPU                       ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# ─── Dataset ────────────────────────────────────────────────────────────────
+data: "C:\\RAG Final project\\vision_engine\\datasets\\combined_circuit_dataset\\data.yaml"
+
+# ─── Model ──────────────────────────────────────────────────────────────────
+model: yolov8n.pt          # nano pretrained weights (downloaded on first run)
+task:  detect
+
+# ─── Training hyper-parameters ──────────────────────────────────────────────
+epochs:        50          # start conservative; increase to 100+ once verified
+batch:         8           # safe for 20 GB RAM on CPU (no GPU VRAM concern)
+imgsz:         640         # standard YOLO input size
+workers:       2           # CPU-only: keep workers low to avoid RAM pressure
+patience:      10          # early-stop if val/mAP50 doesn't improve for 10 epochs
+save_period:   5           # checkpoint every 5 epochs
+
+# ─── Optimiser ──────────────────────────────────────────────────────────────
+optimizer: SGD
+lr0:       0.01
+lrf:       0.01
+momentum:  0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+
+# ─── Augmentation ───────────────────────────────────────────────────────────
+# Moderate augmentation — schematics and PCBs benefit from flips & scale
+hsv_h:     0.015
+hsv_s:     0.7
+hsv_v:     0.4
+degrees:   0.0             # no rotation (components are orientation-sensitive)
+translate: 0.1
+scale:     0.5
+shear:     0.0
+perspective: 0.0
+flipud:    0.0
+fliplr:    0.5
+mosaic:    1.0
+mixup:     0.0
+
+# ─── Device ─────────────────────────────────────────────────────────────────
+device: cpu                # explicit CPU-only; Iris Xe not supported by CUDA
+
+# ─── Paths ──────────────────────────────────────────────────────────────────
+project: "C:\\RAG Final project\\vision_engine\\outputs\\runs"
+name:    yolov8n_circuit_cpu
+
+# ─── Validation ─────────────────────────────────────────────────────────────
+val:     true
+plots:   true              # saves confusion matrix, PR curve, etc.
