@@ -1,0 +1,44 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#0ea5e9" />
+      <stop offset="50%" stopColor="#0284c7" />
+      <stop offset="100%" stopColor="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="neonTrace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#22d3ee" />
+      <stop offset="100%" stopColor="#67e8f9" />
+    </linearGradient>
+    <linearGradient id="chipCore" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#020617" />
+      <stop offset="100%" stopColor="#0f172a" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base Rounded Shield -->
+  <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#logoBgGrad)" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.5" />
+
+  <!-- Microchip Center Base -->
+  <rect x="12" y="12" width="24" height="24" rx="6" fill="url(#chipCore)" stroke="#0284c7" stroke-width="1.2" />
+
+  <!-- Vision Reticle / Corner Brackets -->
+  <path d="M 14 18 L 14 14 L 18 14" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 30 14 L 34 14 L 34 18" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 14 30 L 14 34 L 18 34" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 34 30 L 34 34 L 30 34" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Central Laser Core -->
+  <rect x="19" y="19" width="10" height="10" rx="2" fill="#06b6d4" fill-opacity="0.3" stroke="#38bdf8" stroke-width="1" />
+  <circle cx="24" cy="24" r="2.2" fill="#67e8f9" />
+
+  <!-- Pins -->
+  <line x1="20" y1="6" x2="20" y2="12" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+  <line x1="28" y1="6" x2="28" y2="12" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+  <line x1="20" y1="36" x2="20" y2="42" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+  <line x1="28" y1="36" x2="28" y2="42" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+  <line x1="6" y1="20" x2="12" y2="20" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+  <line x1="6" y1="28" x2="12" y2="28" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+  <line x1="36" y1="20" x2="42" y2="20" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+  <line x1="36" y1="28" x2="42" y2="28" stroke="url(#neonTrace)" stroke-width="1.4" stroke-linecap="round" />
+</svg>
+

@@ -23,7 +23,7 @@ import { DocumentPreviewModal } from "../components/documents/DocumentPreviewMod
 import { AnalysisSummaryCard } from "../components/analysis/AnalysisSummaryCard";
 import { ComponentDetectionsView } from "../components/analysis/ComponentDetectionsView";
 import { AnalysisRecordsList } from "../components/analysis/AnalysisRecordsList";
-import { formatBytes, formatDateTime, parseRawAnalysisReport } from "../lib/utils";
+import { formatBytes, formatDateTime, parseRawAnalysisReport, extractAnalysisDetails } from "../lib/utils";
 
 export const DocumentDetailsPage = () => {
   const { id } = useParams();
@@ -86,39 +86,43 @@ export const DocumentDetailsPage = () => {
   const latestRecord = records.length > 0 ? records[0] : null;
   const rawJson = latestRecord?.rawResponseJson;
   const { report: parsedReport } = parseRawAnalysisReport(rawJson);
+  const analysisDetails = extractAnalysisDetails(parsedReport);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Top Navigation & Breadcrumbs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-900">
-        <div className="flex items-center gap-3">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+      {/* Top Header & Responsive Actions Toolbar */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+        {/* Document Title & Status Pill */}
+        <div className="flex items-start gap-3 min-w-0">
           <Link
             to="/documents"
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors"
+            className="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors shrink-0 mt-0.5"
             title="Back to Documents"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-100 tracking-tight">
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg sm:text-2xl font-extrabold text-slate-100 tracking-tight break-all sm:break-normal max-w-full">
                 {doc.originalFilename}
               </h1>
               <StatusPill status={doc.status} />
             </div>
-            <p className="text-xs font-mono text-slate-400 mt-0.5 select-all">
+            <p className="text-[11px] sm:text-xs font-mono text-slate-400 mt-1 select-all break-all">
               UUID: {doc.id}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Action Buttons Toolbar (Responsive Grid on Mobile/Tablet, Flex on Laptop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => refresh()}
             icon={<RefreshCw className="w-3.5 h-3.5" />}
+            className="w-full md:w-auto justify-center"
           >
             Refresh
           </Button>
@@ -127,6 +131,7 @@ export const DocumentDetailsPage = () => {
             size="sm"
             onClick={() => setIsPreviewOpen(true)}
             icon={<Eye className="w-4 h-4" />}
+            className="w-full md:w-auto justify-center"
           >
             Preview
           </Button>
@@ -136,6 +141,7 @@ export const DocumentDetailsPage = () => {
             onClick={downloadFile}
             loading={downloading}
             icon={<Download className="w-4 h-4" />}
+            className="w-full md:w-auto justify-center"
           >
             Download
           </Button>
@@ -145,6 +151,7 @@ export const DocumentDetailsPage = () => {
             onClick={runAnalysis}
             loading={analyzing}
             icon={<Play className="w-4 h-4" />}
+            className="w-full md:w-auto justify-center font-bold"
           >
             Trigger Analysis
           </Button>
@@ -153,6 +160,7 @@ export const DocumentDetailsPage = () => {
             size="sm"
             onClick={() => setIsDeleteModalOpen(true)}
             icon={<Trash2 className="w-4 h-4" />}
+            className="w-full md:w-auto justify-center col-span-2 sm:col-span-1"
           >
             Delete
           </Button>
@@ -160,18 +168,18 @@ export const DocumentDetailsPage = () => {
       </div>
 
       {/* Document Specification Metadata Panel */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 backdrop-blur-xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 backdrop-blur-xl p-4 sm:p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-cyan-400" />
+            <Layers className="w-4 h-4 text-cyan-400 shrink-0" />
             <h3 className="text-sm font-bold text-slate-100">Document Metadata & Storage</h3>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-[11px] sm:text-xs font-mono text-slate-400 truncate">
             Stored File: {doc.storedFilename || "Standard Store"}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 font-mono text-xs">
           <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60">
             <span className="text-[11px] uppercase tracking-wider text-slate-400">
               Format & Type
@@ -240,8 +248,10 @@ export const DocumentDetailsPage = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Cpu className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-lg font-bold text-slate-100">Multimodal Pipeline Analysis</h2>
+            <Cpu className="w-5 h-5 text-cyan-400 shrink-0" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-100">
+              Multimodal Pipeline Analysis
+            </h2>
           </div>
         </div>
 
@@ -254,6 +264,8 @@ export const DocumentDetailsPage = () => {
         {/* Detailed Component Detections & OCR Section */}
         <ComponentDetectionsView
           parsedReport={parsedReport}
+          detectionCount={latestAnalysis?.detectionCount ?? latestRecord?.detectionCount}
+          ocrCount={latestAnalysis?.ocrCount ?? latestRecord?.ocrCount}
         />
 
         {/* Historical Analysis Execution Records */}
@@ -265,6 +277,7 @@ export const DocumentDetailsPage = () => {
         document={doc}
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
+        detections={analysisDetails.components}
       />
 
       {/* Delete Confirmation Modal */}
@@ -297,7 +310,7 @@ export const DocumentDetailsPage = () => {
       >
         <div className="space-y-2 text-xs">
           <p className="text-slate-300">Confirm deletion of:</p>
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 font-mono text-slate-200">
+          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 font-mono text-slate-200 break-all">
             <p className="font-bold text-rose-300">{doc.originalFilename}</p>
             <p className="text-[11px] text-slate-400 mt-1">UUID: {doc.id}</p>
           </div>

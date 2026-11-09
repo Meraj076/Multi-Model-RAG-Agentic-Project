@@ -229,7 +229,7 @@ export const DocumentTable = ({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 py-3 text-xs text-slate-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-2 py-3 text-xs text-slate-400 text-center sm:text-left">
           <div>
             Showing <span className="font-semibold text-slate-200">{startIndex + 1}</span> to{" "}
             <span className="font-semibold text-slate-200">
