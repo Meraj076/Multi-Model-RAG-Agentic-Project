@@ -25,11 +25,16 @@ Java sends multipart fields:
 
 from __future__ import annotations
 
+import asyncio
 import json
+import math
 import os
+import random
 import tempfile
+import time
 import traceback
-from contextlib import asynccontextmanager
+import urllib.request
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -64,6 +69,68 @@ _yolo_model = None   # Set by lifespan; never mutated during request handling
 
 
 # ---------------------------------------------------------------------------
+# Self-polling keep-alive configuration (3 minutes = 180 seconds)
+# ---------------------------------------------------------------------------
+SELF_PING_ENABLED = os.environ.get("SELF_PING_ENABLED", "true").lower() == "true"
+SELF_PING_INTERVAL_SECONDS = int(os.environ.get("SELF_PING_INTERVAL_SECONDS", "180"))
+
+
+def _run_random_calculation() -> float:
+    """Perform a lightweight random math calculation to keep runtime active without RAM spikes."""
+    seed = random.uniform(1.0, 100.0)
+    acc = seed
+    for i in range(1, 501):
+        acc = (acc * 1.00013 + math.sin(seed + i)) % 10000.0
+    return round(acc, 4)
+
+
+def _ping_url_sync(url: str) -> tuple[int, str]:
+    """Synchronously send an HTTP GET request using stdlib (zero extra dependencies)."""
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "ml-service-keepalive/1.0"},
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        body = resp.read(256).decode("utf-8", errors="replace")
+        return resp.status, body
+
+
+async def _self_polling_loop() -> None:
+    """Background task that pings self (and optional backend URL) every 3 minutes."""
+    await asyncio.sleep(30)  # Wait for Uvicorn to bind port after startup
+
+    port = os.environ.get("PORT", "8000")
+    self_base = (
+        os.environ.get("SELF_PING_URL")
+        or os.environ.get("RENDER_EXTERNAL_URL")
+        or f"http://127.0.0.1:{port}"
+    ).rstrip("/")
+    backend_base = os.environ.get("BACKEND_URL", "").strip().rstrip("/")
+
+    while True:
+        calc_value = _run_random_calculation()
+        targets = [("ml-self", f"{self_base}/keepalive")]
+        if backend_base:
+            targets.append(("backend", f"{backend_base}/api/keepalive"))
+
+        for name, target_url in targets:
+            try:
+                status_code, _ = await asyncio.to_thread(_ping_url_sync, target_url)
+                print(
+                    f"[keepalive] {name} ({target_url}) -> HTTP {status_code} "
+                    f"| calc={calc_value}"
+                )
+            except Exception as exc:
+                print(
+                    f"[keepalive] WARNING — ping failed for {name} ({target_url}): {exc} "
+                    f"| calc={calc_value}"
+                )
+
+        await asyncio.sleep(SELF_PING_INTERVAL_SECONDS)
+
+
+# ---------------------------------------------------------------------------
 # Application lifespan — preload YOLO model on startup
 # ---------------------------------------------------------------------------
 @asynccontextmanager
@@ -95,7 +162,17 @@ async def lifespan(application: FastAPI):
         hint = f" (TESSERACT_CMD={tess_cmd!r})" if tess_cmd else ""
         print(f"[startup] OCR will be skipped. Install Tesseract or set TESSERACT_CMD.{hint}")
 
+    keepalive_task = None
+    if SELF_PING_ENABLED:
+        keepalive_task = asyncio.create_task(_self_polling_loop())
+        print(f"[startup] Self-polling keep-alive enabled (interval={SELF_PING_INTERVAL_SECONDS}s).")
+
     yield  # Application runs
+
+    if keepalive_task is not None:
+        keepalive_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await keepalive_task
 
     _yolo_model = None
     print("[shutdown] YOLO model released.")
@@ -147,6 +224,18 @@ def health():
         "modelLoaded": model_loaded,
         "modelFile": str(DEFAULT_MODEL.name) if model_loaded else None,
         "tesseractAvailable": tess_ok,
+    }
+
+
+@app.get("/keepalive")
+def keepalive():
+    """Lightweight keep-alive endpoint that runs a small random calculation."""
+    return {
+        "status": "alive",
+        "service": "circuit-blueprint-analysis",
+        "modelLoaded": _yolo_model is not None,
+        "timestamp": time.time(),
+        "calculationResult": _run_random_calculation(),
     }
 
 

@@ -168,6 +168,8 @@ Open `http://localhost:5173` in your browser.
    - **Instance Type**: Free
 4. Environment Variables:
    - `PORT`: `8000`
+   - `SELF_PING_ENABLED`: `true` (pings `/keepalive` every 3 minutes; set `false` when idle to save Render free hours)
+   - `BACKEND_URL`: `https://blueprint-backend-service.onrender.com` (optional — enables ML service to cross-ping backend)
 5. Click **Deploy Web Service**.
 6. Note the deployed URL: `https://blueprint-ml-service.onrender.com`.
 
@@ -190,6 +192,7 @@ Open `http://localhost:5173` in your browser.
    - `ML_SERVICE_CONNECT_TIMEOUT_MS`: `60000`
    - `ML_SERVICE_READ_TIMEOUT_MS`: `90000`
    - `JAVA_OPTS`: `-Xms192m -Xmx320m -XX:+UseSerialGC`
+   - `SELF_PING_ENABLED`: `true` (pings `/api/keepalive` & ML `/keepalive` every 3 minutes; set `false` when idle)
 5. Click **Deploy Web Service**.
 6. Verify at: `https://blueprint-backend-service.onrender.com/api/health`.
 
@@ -215,6 +218,7 @@ Open `http://localhost:5173` in your browser.
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | System health check (reports JVM status & Python ML connectivity). |
+| `GET` | `/api/keepalive` | Lightweight keep-alive endpoint with random calculation (no DB query). |
 | `POST` | `/api/documents/upload` | Multipart file upload (`.pdf`, `.png`, `.jpg`, `.jpeg` up to 50 MB). |
 | `GET` | `/api/documents` | Lists all uploaded blueprint documents with status & metadata. |
 | `GET` | `/api/documents/{id}` | Retrieves metadata and status for a specific document. |
